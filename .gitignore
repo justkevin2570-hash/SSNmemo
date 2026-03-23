@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# PyInstaller build artifacts
+build/
+dist/
+
+# Virtual environments
+venv/
+.env/
+
+# Local DB
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
