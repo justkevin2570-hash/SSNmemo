@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('엑스아이콘.png', '.'), ('정리 아이콘.png', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
