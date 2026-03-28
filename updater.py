@@ -18,7 +18,7 @@ import urllib.error
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QTimer
 from PyQt5.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
-APP_VERSION = 'v1.7'
+APP_VERSION = 'v0.1'  # 테스트용으로 낮게 설정
 
 _GITHUB_API_URL = 'https://api.github.com/repos/justkevin2570-hash/SSNnote/releases/latest'
 _APPDATA_DIR = os.path.join(os.environ.get('APPDATA', '.'), 'SSNnote')
@@ -85,6 +85,31 @@ class UpdateNotifier(QObject):
         show_update_dialog(tag_name, changelog)
 
 
+class ManualUpdateSignal(QObject):
+    """수동 업데이트 확인용 신호."""
+    show_dialog = pyqtSignal(str, str)  # (tag_name, changelog)
+    show_offline = pyqtSignal()
+    show_uptodate = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.show_dialog.connect(self._on_show_dialog, Qt.QueuedConnection)
+        self.show_offline.connect(self._on_show_offline, Qt.QueuedConnection)
+        self.show_uptodate.connect(self._on_show_uptodate, Qt.QueuedConnection)
+
+    def _on_show_dialog(self, tag_name: str, changelog: str):
+        show_update_dialog(tag_name, changelog)
+
+    def _on_show_offline(self):
+        _show_offline_msg()
+
+    def _on_show_uptodate(self):
+        _show_up_to_date_msg()
+
+
+_manual_signal = ManualUpdateSignal()
+
+
 def check_for_update_on_startup(notifier: UpdateNotifier):
     """
     백그라운드 스레드 타깃. 앱 시작 시 호출.
@@ -108,16 +133,21 @@ def check_for_update_on_startup(notifier: UpdateNotifier):
 def check_for_update_manual(parent=None):
     """트레이 메뉴에서 수동 확인."""
     def _check():
+        print(f'[UPDATE] 버전 확인 시작. 현재 버전: {APP_VERSION}')
         release = fetch_latest_release()
         if release is None:
-            QTimer.singleShot(0, lambda: _show_offline_msg(parent))
+            print('[UPDATE] API 응답 없음')
+            _manual_signal.show_offline.emit()
             return
         remote_tag = release.get('tag_name', '')
+        print(f'[UPDATE] 최신 버전: {remote_tag}')
         if not is_newer_version(remote_tag, APP_VERSION):
-            QTimer.singleShot(0, lambda: _show_up_to_date_msg(parent))
+            print(f'[UPDATE] 최신 버전입니다 ({APP_VERSION})')
+            _manual_signal.show_uptodate.emit()
             return
+        print(f'[UPDATE] 새 버전 있음: {APP_VERSION} → {remote_tag}')
         changelog = release.get('body', '')
-        QTimer.singleShot(0, lambda: show_update_dialog(remote_tag, changelog, parent))
+        _manual_signal.show_dialog.emit(remote_tag, changelog)
 
     threading.Thread(target=_check, daemon=True).start()
 
@@ -126,10 +156,25 @@ def show_update_dialog(tag_name: str, changelog: str, parent=None):
     """팝업 표시. 예/아니오 모두 버전 기록."""
     msg = QMessageBox(parent)
     msg.setWindowTitle('SSNnote 업데이트')
-    msg.setText(f'새로운 버전 {tag_name}이 나왔습니다.\n업데이트 하시겠어요?')
-    msg.setDetailedText(changelog)
+    msg.setText(f'현재 버전: {APP_VERSION}\n최신 버전: {tag_name}\n\n업데이트 하시겠어요?')
     msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
     msg.setDefaultButton(QMessageBox.Yes)
+    msg.setDetailedText(changelog if changelog else '업데이트 내역 없음')
+
+    # 버튼 텍스트를 한글로 변경 (setDetailedText 이후에 호출)
+    yes_btn = msg.button(QMessageBox.Yes)
+    no_btn = msg.button(QMessageBox.No)
+    if yes_btn:
+        yes_btn.setText('예')
+    if no_btn:
+        no_btn.setText('아니오')
+
+    # Show Details 버튼도 한글로 변경
+    for btn in msg.buttons():
+        text = btn.text()
+        if 'Show Details' in text or 'Details' in text:
+            btn.setText('자세히')
+
     result = msg.exec_()
 
     _save_notified_version(tag_name)
@@ -224,10 +269,22 @@ del "%~f0"
 
 
 def _show_offline_msg(parent=None):
-    QMessageBox.information(parent, '업데이트 확인',
-        '서버에 연결할 수 없습니다.\n인터넷 연결을 확인해 주세요.')
+    msg = QMessageBox(parent)
+    msg.setWindowTitle('업데이트 확인')
+    msg.setText('서버에 연결할 수 없습니다.\n인터넷 연결을 확인해 주세요.')
+    msg.setStandardButtons(QMessageBox.Ok)
+    ok_btn = msg.button(QMessageBox.Ok)
+    if ok_btn:
+        ok_btn.setText('확인')
+    msg.exec_()
 
 
 def _show_up_to_date_msg(parent=None):
-    QMessageBox.information(parent, '업데이트 확인',
-        f'현재 최신 버전({APP_VERSION})을 사용 중입니다.')
+    msg = QMessageBox(parent)
+    msg.setWindowTitle('업데이트 확인')
+    msg.setText(f'현재 최신 버전({APP_VERSION})을 사용 중입니다.')
+    msg.setStandardButtons(QMessageBox.Ok)
+    ok_btn = msg.button(QMessageBox.Ok)
+    if ok_btn:
+        ok_btn.setText('확인')
+    msg.exec_()
