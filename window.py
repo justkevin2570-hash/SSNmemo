@@ -14,6 +14,7 @@ from db import (update_window, delete_window, get_tasks, add_task, delete_task, 
                 get_documents, add_document, update_document, delete_document)
 from autostart import is_enabled as autostart_is_enabled, set_enabled as autostart_set
 from capture import ScreenCaptureOverlay, run_ocr, grab_fullscreen, OcrWorker, _normalize_doc_number
+import updater
 
 TITLE_BAR_HEIGHT = 40
 TITLE_COLOR      = '#f7c948'
@@ -1396,6 +1397,7 @@ class MemoWindow(QMainWindow):
         autostart_on = autostart_is_enabled()
         act_auto   = QAction(('✅' if autostart_on else '☐') + ' 시작 시 자동실행', self)
         act_help   = QAction('💡 도움말', self)
+        act_update = QAction('⬇️ 업데이트 확인', self)
         act_delete = QAction('🗑️ 메모장 삭제', self)
 
         # 배경색 서브메뉴
@@ -1430,12 +1432,14 @@ class MemoWindow(QMainWindow):
         menu.addMenu(color_menu)
         menu.addAction(act_auto)
         menu.addAction(act_help)
+        menu.addAction(act_update)
         menu.addSeparator()
         menu.addAction(act_delete)
 
         act_new.triggered.connect(lambda: self.on_new(offset_from=self, on_toggle_hotkey=self._on_toggle_hotkey))
         act_auto.triggered.connect(lambda: autostart_set(not autostart_on))
         act_help.triggered.connect(self.show_help)
+        act_update.triggered.connect(lambda: updater.check_for_update_manual(self))
         act_delete.triggered.connect(self.delete_memo)
 
         pos = btn.mapToGlobal(btn.rect().bottomLeft())
