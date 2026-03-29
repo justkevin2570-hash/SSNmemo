@@ -19,30 +19,46 @@ import urllib.error
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QTimer
 from PyQt5.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
-APP_VERSION = 'v1.62'
+APP_VERSION = 'v1.61'
 
-_VERSION_JSON_URL = 'https://cdn.jsdelivr.net/gh/justkevin2570-hash/SSNnote@master/version.json'
+_VERSION_JSON_URL = 'https://api.github.com/repos/justkevin2570-hash/SSNnote/contents/version.json'
+_VERSION_JSON_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/justkevin2570-hash/SSNnote@master/version.json'
 _APPDATA_DIR = os.path.join(os.environ.get('APPDATA', '.'), 'SSNnote')
 _NOTIFIED_FILE = os.path.join(_APPDATA_DIR, 'last_notified_version.txt')
 _REQUEST_TIMEOUT = 10
 
 
-def fetch_version_info() -> dict | None:
-    """version.json에서 버전 정보를 가져온다. 실패 시 None 반환."""
+def _fetch_url(url: str, extra_headers: str = '') -> dict | None:
+    """PowerShell로 URL을 fetch해 JSON을 반환. 실패 시 None."""
+    ps_cmd = (
+        f'$h = @{{Accept="application/vnd.github.v3.raw"; "User-Agent"="SSNnote"}}; '
+        f'(Invoke-WebRequest -Uri "{url}" -UseBasicParsing -Headers $h).Content'
+    )
     try:
         result = subprocess.run(
-            ['powershell', '-NoProfile', '-Command',
-             f'(Invoke-WebRequest -Uri "{_VERSION_JSON_URL}" -UseBasicParsing).Content'],
+            ['powershell', '-NoProfile', '-Command', ps_cmd],
             capture_output=True, text=True, timeout=_REQUEST_TIMEOUT,
             creationflags=0x08000000,  # CREATE_NO_WINDOW
         )
         if result.returncode != 0 or not result.stdout.strip():
-            print(f'[UPDATE] PowerShell fetch 실패: {result.stderr.strip()}')
             return None
         return json.loads(result.stdout)
-    except Exception as e:
-        print(f'[UPDATE] fetch 실패: {e}')
+    except Exception:
         return None
+
+
+def fetch_version_info() -> dict | None:
+    """version.json에서 버전 정보를 가져온다. 실패 시 None 반환."""
+    # 1차: GitHub API (캐시 없음, 항상 최신)
+    data = _fetch_url(_VERSION_JSON_URL)
+    if data is not None:
+        return data
+    print(f'[UPDATE] GitHub API 실패, jsDelivr fallback 시도')
+    # 2차: jsDelivr CDN fallback
+    data = _fetch_url(_VERSION_JSON_FALLBACK_URL)
+    if data is None:
+        print(f'[UPDATE] fetch 실패 (모든 경로 실패)')
+    return data
 
 
 def is_newer_version(remote_tag: str, local_tag: str) -> bool:
