@@ -5,14 +5,16 @@ import ctypes
 import ctypes.wintypes
 import threading
 
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QMessageBox
 from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor
-from PyQt5.QtCore import Qt, QAbstractNativeEventFilter
+from PyQt5.QtCore import Qt, QAbstractNativeEventFilter, QTimer
 from db import init_db, get_all_windows, get_tasks, create_window
 from window import MemoWindow
 import auth
 import sync
 import updater
+
+_WELCOME_FLAG = os.path.join(os.environ.get('APPDATA', '.'), 'SSNnote', 'welcome_shown.txt')
 
 _HOTKEY_CAPTURE = 1
 _HOTKEY_RESTORE = 2
@@ -173,6 +175,27 @@ if __name__ == '__main__':
         sync.push_all(windows, tasks_by_window)
 
     threading.Thread(target=_cloud_init, daemon=True).start()
+
+    def _show_welcome_if_first_run():
+        if os.path.exists(_WELCOME_FLAG):
+            return
+        msg = QMessageBox()
+        msg.setWindowTitle('서서니 노트')
+        msg.setText(
+            '반갑습니다~ 노트 앱이 한 분에게라도\n'
+            '도움이 되었으면 하는 마음입니다.\n\n'
+            '꼭 도움말 읽어보시고, 단축키 잘 활용하세요!'
+        )
+        msg.setStandardButtons(QMessageBox.Ok)
+        btn = msg.button(QMessageBox.Ok)
+        if btn:
+            btn.setText('확인')
+        msg.exec_()
+        os.makedirs(os.path.dirname(_WELCOME_FLAG), exist_ok=True)
+        with open(_WELCOME_FLAG, 'w', encoding='utf-8') as f:
+            f.write('shown')
+
+    QTimer.singleShot(300, _show_welcome_if_first_run)
 
     _update_notifier = updater.UpdateNotifier()
     threading.Thread(

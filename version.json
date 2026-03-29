@@ -1,5 +1,5 @@
 {
-  "version": "v1.62",
-  "download_url": "https://github.com/justkevin2570-hash/SSNnote/releases/download/v1.62/SSNnote_Setup.exe",
-  "changelog": "- 업데이트 서버 연결 문제 수정\n- 제목표시줄 버전 표기 제거\n- '업무 목록' → '지난 기록' 텍스트 변경"
+  "version": "v1.63",
+  "download_url": "https://github.com/justkevin2570-hash/SSNnote/releases/download/v1.63/SSNnote_Setup.exe",
+  "changelog": "- 최초 실행 시 공지사항 팝업 추가\n- 자동 업데이트 CDN 캐시 문제 수정\n- 제목표시줄 버전 표기 제거\n- '업무 목록' → '지난 기록' 텍스트 변경"
 }

@@ -19,7 +19,7 @@ import urllib.error
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QTimer
 from PyQt5.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
-APP_VERSION = 'v1.61'
+APP_VERSION = 'v1.63'
 
 _VERSION_JSON_URL = 'https://api.github.com/repos/justkevin2570-hash/SSNnote/contents/version.json'
 _VERSION_JSON_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/justkevin2570-hash/SSNnote@master/version.json'
