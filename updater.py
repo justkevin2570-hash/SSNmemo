@@ -21,8 +21,8 @@ from PyQt5.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
 APP_VERSION = 'v1.63'
 
-_VERSION_JSON_URL = 'https://cdn.statically.io/gh/justkevin2570-hash/SSNnote/master/version.json'
-_VERSION_JSON_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/justkevin2570-hash/SSNnote@master/version.json'
+_VERSION_JSON_URL = 'https://cdn.jsdelivr.net/gh/justkevin2570-hash/SSNnote@master/version.json'
+_VERSION_JSON_PURGE_URL = 'https://purge.jsdelivr.net/gh/justkevin2570-hash/SSNnote@master/version.json'
 _APPDATA_DIR = os.path.join(os.environ.get('APPDATA', '.'), 'SSNnote')
 _NOTIFIED_FILE = os.path.join(_APPDATA_DIR, 'last_notified_version.txt')
 _REQUEST_TIMEOUT = 10
@@ -49,15 +49,11 @@ def _fetch_url(url: str, extra_headers: str = '') -> dict | None:
 
 def fetch_version_info() -> dict | None:
     """version.json에서 버전 정보를 가져온다. 실패 시 None 반환."""
-    # 1차: GitHub API (캐시 없음, 항상 최신)
+    # 캐시 purge 후 fetch
+    _fetch_url(_VERSION_JSON_PURGE_URL)
     data = _fetch_url(_VERSION_JSON_URL)
-    if data is not None:
-        return data
-    print(f'[UPDATE] GitHub API 실패, jsDelivr fallback 시도')
-    # 2차: jsDelivr CDN fallback
-    data = _fetch_url(_VERSION_JSON_FALLBACK_URL)
     if data is None:
-        print(f'[UPDATE] fetch 실패 (모든 경로 실패)')
+        print(f'[UPDATE] fetch 실패')
     return data
 
 

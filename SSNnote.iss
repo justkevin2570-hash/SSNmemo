@@ -6,6 +6,7 @@ DefaultDirName={autopf}\SSNnote
 DefaultGroupName=SSNnote
 OutputDir=dist
 OutputBaseFilename=SSNnote_Setup
+SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes
 CloseApplications=yes
