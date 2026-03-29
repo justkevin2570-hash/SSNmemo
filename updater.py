@@ -21,8 +21,8 @@ from PyQt5.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
 APP_VERSION = 'v1.63'
 
-_VERSION_JSON_URL = 'https://cdn.jsdelivr.net/gh/justkevin2570-hash/SSNnote@master/version.json'
-_VERSION_JSON_PURGE_URL = 'https://purge.jsdelivr.net/gh/justkevin2570-hash/SSNnote@master/version.json'
+_JSDELIVR_META_URL = 'https://data.jsdelivr.com/v1/package/gh/justkevin2570-hash/SSNnote'
+_JSDELIVR_FILE_URL = 'https://cdn.jsdelivr.net/gh/justkevin2570-hash/SSNnote@{tag}/version.json'
 _APPDATA_DIR = os.path.join(os.environ.get('APPDATA', '.'), 'SSNnote')
 _NOTIFIED_FILE = os.path.join(_APPDATA_DIR, 'last_notified_version.txt')
 _REQUEST_TIMEOUT = 10
@@ -49,12 +49,24 @@ def _fetch_url(url: str, extra_headers: str = '') -> dict | None:
 
 def fetch_version_info() -> dict | None:
     """version.json에서 버전 정보를 가져온다. 실패 시 None 반환."""
-    # 캐시 purge 후 fetch
-    _fetch_url(_VERSION_JSON_PURGE_URL)
-    data = _fetch_url(_VERSION_JSON_URL)
-    if data is None:
-        print(f'[UPDATE] fetch 실패')
-    return data
+    # 1단계: data.jsdelivr.com으로 최신 태그 확인 (캐시 없음)
+    meta = _fetch_url(_JSDELIVR_META_URL)
+    if not meta:
+        print('[UPDATE] 메타데이터 조회 실패')
+        return None
+    versions = meta.get('versions', [])
+    if not versions:
+        print('[UPDATE] 버전 목록 없음')
+        return None
+    # 2단계: 최신 태그부터 순서대로 version.json 찾기
+    for tag in versions[:5]:
+        url = _JSDELIVR_FILE_URL.format(tag=tag)
+        data = _fetch_url(url)
+        if data is not None:
+            print(f'[UPDATE] 최신 태그: {tag}')
+            return data
+    print('[UPDATE] version.json fetch 실패')
+    return None
 
 
 def is_newer_version(remote_tag: str, local_tag: str) -> bool:
